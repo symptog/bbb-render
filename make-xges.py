@@ -137,16 +137,26 @@ class Presentation:
         self.opening_length = 0
 
         # Add an encoding profile for the benefit of Pitivi
-        profile = GstPbutils.EncodingContainerProfile.new(
-            'MP4', 'bbb-render encoding profile',
-            Gst.Caps.from_string('video/quicktime,variant=iso'))
-        profile.add_profile(GstPbutils.EncodingVideoProfile.new(
-            Gst.Caps.from_string('video/x-h264,profile=high'), None,
+        webm_profile = GstPbutils.EncodingContainerProfile.new(
+            'default', 'bbb-render encoding profile',
+            Gst.Caps.from_string('video/webm'))
+
+        webm_vid_preset = Gst.ElementFactory.make('vp8enc', 'webm_vid_preset')
+        webm_vid_preset.set_property('threads', 12)
+        webm_vid_preset.set_property('token-partitions', 3)
+        webm_vid_preset.set_property('target-bitrate', 2500000)
+        webm_vid_preset.set_property('deadline', 0)  # best
+        webm_vid_preset.set_property('end-usage', 2)  # Constant Quality Mode
+        webm_vid_preset.set_property('cq-level', 10)
+        Gst.Preset.save_preset(webm_vid_preset, 'webm_vid_preset')
+
+        webm_profile.add_profile(GstPbutils.EncodingVideoProfile.new(
+            Gst.Caps.from_string('video/x-vp8'), 'webm_vid_preset',
             self.video_track.props.restriction_caps, 0))
-        profile.add_profile(GstPbutils.EncodingAudioProfile.new(
-            Gst.Caps.from_string('audio/mpeg,mpegversion=4,base-profile=lc'),
+        webm_profile.add_profile(GstPbutils.EncodingAudioProfile.new(
+            Gst.Caps.from_string('audio/x-opus'),
             None, self.audio_track.props.restriction_caps, 0))
-        self.project.add_encoding_profile(profile)
+        self.project.add_encoding_profile(webm_profile)
 
     def set_project_metadata(self):
         doc = ET.parse(os.path.join(self.opts.basedir, 'metadata.xml'))
